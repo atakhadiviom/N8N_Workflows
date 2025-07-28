@@ -119,7 +119,39 @@ class N8N_Workflow_Importer {
         $workflow_url = sanitize_url($_POST['workflow_url'] ?? '');
         
         try {
-            $workflow_data = $this->github_api->get_workflow_content($workflow_url);
+            // Get the raw JSON content
+            $workflow_content = $this->github_api->get_workflow_content($workflow_url);
+            
+            // Validate that it's valid JSON
+            $json_data = json_decode($workflow_content, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Invalid JSON content: ' . json_last_error_msg());
+            }
+            
+            // Check if it looks like an n8n workflow
+            if (!isset($json_data['nodes']) || !is_array($json_data['nodes'])) {
+                throw new Exception('This does not appear to be a valid n8n workflow (missing nodes array)');
+            }
+            
+            // Parse the URL to extract repository info
+            if (preg_match('/github\.com\/([^\/]+\/[^\/]+)\/blob\/[^\/]+\/(.+)/', $workflow_url, $matches)) {
+                $repo_name = $matches[1];
+                $file_path = $matches[2];
+            } else {
+                throw new Exception('Could not parse GitHub URL');
+            }
+            
+            // Structure the workflow data as expected by create_workflow_post
+            $workflow_data = array(
+                'content' => $workflow_content,
+                'html_url' => $workflow_url,
+                'download_url' => $workflow_url, // For manual imports, use the same URL
+                'path' => $file_path,
+                'repository' => array(
+                    'full_name' => $repo_name
+                )
+            );
+            
             $post_id = $this->create_workflow_post($workflow_data);
             
             wp_send_json_success(array(
