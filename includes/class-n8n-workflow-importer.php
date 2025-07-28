@@ -59,9 +59,9 @@ class N8N_Workflow_Importer {
             N8N_WORKFLOW_IMPORTER_VERSION
         );
         
-        wp_localize_script('n8n-workflow-importer-frontend', 'n8n_ajax', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('n8n_workflow_nonce')
+        wp_localize_script('n8n-workflow-importer-frontend', 'n8nWorkflowAjax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('n8n_workflow_frontend_nonce')
         ));
     }
     
@@ -84,13 +84,13 @@ class N8N_Workflow_Importer {
         
         wp_enqueue_style(
             'n8n-workflow-importer-admin',
-            N8N_WORKFLOW_IMPORTER_PLUGIN_URL . 'assets/css/admin.css',
+            N8N_WORKFLOW_IMPORTER_PLUGIN_URL . 'assets/css/n8n-workflow-importer.css',
             array(),
             N8N_WORKFLOW_IMPORTER_VERSION
         );
         
-        wp_localize_script('n8n-workflow-importer-admin', 'n8n_admin_ajax', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
+        wp_localize_script('n8n-workflow-importer-admin', 'n8nWorkflowAjax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('n8n_workflow_admin_nonce')
         ));
     }

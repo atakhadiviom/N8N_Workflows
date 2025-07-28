@@ -521,12 +521,12 @@ class N8N_Admin_Page {
                 button.addClass('loading').text('<?php _e('Searching...', 'n8n-workflow-importer'); ?>');
                 
                 $.ajax({
-                    url: ajaxurl,
+                    url: n8nWorkflowAjax.ajaxurl,
                     type: 'POST',
                     data: {
                         action: 'search_n8n_workflows',
                         search_term: searchTerm,
-                        nonce: '<?php echo wp_create_nonce('n8n_workflow_nonce'); ?>'
+                        nonce: n8nWorkflowAjax.nonce
                     },
                     success: function(response) {
                         if (response.success) {
@@ -591,12 +591,12 @@ class N8N_Admin_Page {
                 button.addClass('loading').text('<?php _e('Importing...', 'n8n-workflow-importer'); ?>');
                 
                 $.ajax({
-                    url: ajaxurl,
+                    url: n8nWorkflowAjax.ajaxurl,
                     type: 'POST',
                     data: {
                         action: 'import_workflow',
                         workflow_url: url,
-                        nonce: '<?php echo wp_create_nonce('n8n_workflow_admin_nonce'); ?>'
+                        nonce: n8nWorkflowAjax.nonce
                     },
                     success: function(response) {
                         if (response.success) {
@@ -646,11 +646,11 @@ class N8N_Admin_Page {
                 button.prop('disabled', true).html('<span class="dashicons dashicons-update-alt" style="animation: spin 1s linear infinite;"></span> <?php _e('Fetching...', 'n8n-workflow-importer'); ?>');
                 
                 $.ajax({
-                    url: n8n_ajax.ajax_url,
+                    url: n8nWorkflowAjax.ajaxurl,
                     type: 'POST',
                     data: {
                         action: 'fetch_new_workflows',
-                        nonce: n8n_ajax.nonce
+                        nonce: n8nWorkflowAjax.nonce
                     },
                     success: function(response) {
                         if (response.success) {
@@ -698,8 +698,8 @@ class N8N_Admin_Page {
         
         // Enqueue jQuery and localize script
         wp_enqueue_script('jquery');
-        wp_localize_script('jquery', 'n8n_ajax', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
+        wp_localize_script('jquery', 'n8nWorkflowAjax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('n8n_fetch_workflows_nonce')
         ));
     }
