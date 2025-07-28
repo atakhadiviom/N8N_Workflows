@@ -512,81 +512,7 @@ class N8N_Admin_Page {
         
         <script>
         jQuery(document).ready(function($) {
-            // Search workflows
-            $('#search-workflows').on('click', function() {
-                var searchTerm = $('#workflow-search').val();
-                if (!searchTerm) return;
-                
-                var button = $(this);
-                button.addClass('loading').text('<?php _e('Searching...', 'n8n-workflow-importer'); ?>');
-                
-                $.ajax({
-                    url: n8nWorkflowAjax.ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'search_n8n_workflows',
-                        search_term: searchTerm,
-                        nonce: n8nWorkflowAjax.nonce
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            displaySearchResults(response.data.items);
-                        } else {
-                            alert('Error: ' + response.data);
-                        }
-                    },
-                    error: function() {
-                        alert('<?php _e('Search failed. Please try again.', 'n8n-workflow-importer'); ?>');
-                    },
-                    complete: function() {
-                        button.removeClass('loading').text('<?php _e('Search', 'n8n-workflow-importer'); ?>');
-                    }
-                });
-            });
-            
-            // Import from URL
-            $('#import-url').on('click', function() {
-                var url = $('#workflow-url').val();
-                if (!url) return;
-                
-                importWorkflow(url, $(this));
-            });
-            
-            // Bulk import
-            $('#bulk-import').on('click', function() {
-                if (confirm('<?php _e('This will import multiple workflows. Continue?', 'n8n-workflow-importer'); ?>')) {
-                    startBulkImport();
-                }
-            });
-            
-            function displaySearchResults(workflows) {
-                var resultsDiv = $('#search-results');
-                resultsDiv.empty();
-                
-                if (workflows.length === 0) {
-                    resultsDiv.html('<p><?php _e('No workflows found.', 'n8n-workflow-importer'); ?></p>');
-                } else {
-                    workflows.forEach(function(workflow) {
-                        var resultHtml = '<div class="workflow-result">' +
-                            '<div class="workflow-info">' +
-                            '<h4>' + workflow.name + '</h4>' +
-                            '<p>' + workflow.repository.full_name + ' - ' + workflow.path + '</p>' +
-                            '</div>' +
-                            '<button class="button import-workflow" data-url="' + workflow.html_url + '"><?php _e('Import', 'n8n-workflow-importer'); ?></button>' +
-                            '</div>';
-                        resultsDiv.append(resultHtml);
-                    });
-                }
-                
-                resultsDiv.show();
-            }
-            
-            // Handle individual workflow import
-            $(document).on('click', '.import-workflow', function() {
-                var url = $(this).data('url');
-                importWorkflow(url, $(this));
-            });
-            
+            // Define functions first
             function importWorkflow(url, button) {
                 button.addClass('loading').text('<?php _e('Importing...', 'n8n-workflow-importer'); ?>');
                 
@@ -636,6 +562,81 @@ class N8N_Admin_Page {
                     }
                 }, 500);
             }
+            
+            function displaySearchResults(workflows) {
+                var resultsDiv = $('#search-results');
+                resultsDiv.empty();
+                
+                if (workflows.length === 0) {
+                    resultsDiv.html('<p><?php _e('No workflows found.', 'n8n-workflow-importer'); ?></p>');
+                } else {
+                    workflows.forEach(function(workflow) {
+                        var resultHtml = '<div class="workflow-result">' +
+                            '<div class="workflow-info">' +
+                            '<h4>' + workflow.name + '</h4>' +
+                            '<p>' + workflow.repository.full_name + ' - ' + workflow.path + '</p>' +
+                            '</div>' +
+                            '<button class="button import-workflow" data-url="' + workflow.html_url + '"><?php _e('Import', 'n8n-workflow-importer'); ?></button>' +
+                            '</div>';
+                        resultsDiv.append(resultHtml);
+                    });
+                }
+                
+                resultsDiv.show();
+            }
+            
+            // Search workflows
+            $('#search-workflows').on('click', function() {
+                var searchTerm = $('#workflow-search').val();
+                if (!searchTerm) return;
+                
+                var button = $(this);
+                button.addClass('loading').text('<?php _e('Searching...', 'n8n-workflow-importer'); ?>');
+                
+                $.ajax({
+                    url: n8nWorkflowAjax.ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'search_n8n_workflows',
+                        search_term: searchTerm,
+                        nonce: n8nWorkflowAjax.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            displaySearchResults(response.data.items);
+                        } else {
+                            alert('Error: ' + response.data);
+                        }
+                    },
+                    error: function() {
+                        alert('<?php _e('Search failed. Please try again.', 'n8n-workflow-importer'); ?>');
+                    },
+                    complete: function() {
+                        button.removeClass('loading').text('<?php _e('Search', 'n8n-workflow-importer'); ?>');
+                    }
+                });
+            });
+            
+            // Import from URL
+            $('#import-url').on('click', function() {
+                var url = $('#workflow-url').val();
+                if (!url) return;
+                
+                importWorkflow(url, $(this));
+            });
+            
+            // Bulk import
+            $('#bulk-import').on('click', function() {
+                if (confirm('<?php _e('This will import multiple workflows. Continue?', 'n8n-workflow-importer'); ?>')) {
+                    startBulkImport();
+                }
+            });
+            
+            // Handle individual workflow import
+            $(document).on('click', '.import-workflow', function() {
+                var url = $(this).data('url');
+                importWorkflow(url, $(this));
+            });
             
             // Handle fetch new workflows button
             $('#fetch-new-workflows').on('click', function() {
