@@ -23,14 +23,12 @@ class GitHub_API {
      * Search for n8n workflows on GitHub
      */
     public function search_workflows($search_term = '', $page = 1, $per_page = 30) {
-        $query = 'filename:.json';
+        // Use the specific search term for n8n nodes
+        $query = 'n8n-nodes-base language:json';
         
         if (!empty($search_term)) {
-            $query .= ' ' . $search_term;
+            $query = $search_term;
         }
-        
-        // Add n8n specific search terms
-        $query .= ' (n8n OR workflow OR automation)';
         
         $url = $this->api_base_url . '/search/code';
         $params = array(
@@ -65,15 +63,24 @@ class GitHub_API {
      * Get specific workflow content from GitHub
      */
     public function get_workflow_content($file_url) {
-        // Extract repository and path from GitHub URL
-        if (preg_match('/github\.com\/([^\/]+\/[^\/]+)\/blob\/[^\/]+\/(.+)/', $file_url, $matches)) {
+        // Handle both API URLs and HTML URLs
+        $repo = null;
+        if (preg_match('/api\.github\.com\/repositories\/\d+\/contents\/(.+?)(?:\?|$)/', $file_url, $matches)) {
+            // API URL with repository ID format - use direct URL
+            $url = $file_url;
+        } elseif (preg_match('/api\.github\.com\/repos\/([^\/]+\/[^\/]+)\/contents\/(.+?)(?:\?|$)/', $file_url, $matches)) {
+            // API URL format
             $repo = $matches[1];
             $path = $matches[2];
+            $url = $this->api_base_url . '/repos/' . $repo . '/contents/' . $path;
+        } elseif (preg_match('/github\.com\/([^\/]+\/[^\/]+)\/blob\/[^\/]+\/(.+)/', $file_url, $matches)) {
+            // HTML URL format
+            $repo = $matches[1];
+            $path = $matches[2];
+            $url = $this->api_base_url . '/repos/' . $repo . '/contents/' . $path;
         } else {
-            throw new Exception('Invalid GitHub URL format');
+            throw new Exception('Invalid GitHub URL format: ' . $file_url);
         }
-        
-        $url = $this->api_base_url . '/repos/' . $repo . '/contents/' . $path;
         
         $response = $this->make_request($url);
         
@@ -92,16 +99,12 @@ class GitHub_API {
             throw new Exception('GitHub API Error: ' . $data['message']);
         }
         
-        // Decode base64 content
+        // Decode base64 content and return just the JSON content
         if (isset($data['content'])) {
-            $data['content'] = base64_decode($data['content']);
+            return base64_decode($data['content']);
         }
         
-        // Add repository information
-        $repo_info = $this->get_repository_info($repo);
-        $data['repository'] = $repo_info;
-        
-        return $data;
+        throw new Exception('No content found in GitHub API response');
     }
     
     /**
@@ -404,7 +407,7 @@ class GitHub_API {
             'timeout' => 30
         );
         
-        $response = wp_remote_request($url, $args);
+        $response = wp_remote_post($url, $args);
         
         if (is_wp_error($response)) {
             throw new Exception('OpenRouter API request failed: ' . $response->get_error_message());
