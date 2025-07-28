@@ -605,6 +605,34 @@
     font-size: 11px;
 }
 
+/* Fetch workflows button styling */
+#fetch-new-workflows {
+    margin-left: 10px;
+}
+
+#fetch-new-workflows .dashicons {
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+/* Spinning animation for loading state */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-buttons .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
 /* Print Styles */
 @media print {
     .workflow-sidebar,

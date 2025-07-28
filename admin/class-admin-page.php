@@ -12,6 +12,8 @@ class N8N_Admin_Page {
     public function init() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('wp_ajax_fetch_new_workflows', array($this, 'ajax_fetch_new_workflows'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
     }
     
     /**
@@ -104,6 +106,10 @@ class N8N_Admin_Page {
                         <a href="<?php echo admin_url('admin.php?page=n8n-workflow-import'); ?>" class="button button-primary">
                             <?php _e('Import Workflows', 'n8n-workflow-importer'); ?>
                         </a>
+                        <button id="fetch-new-workflows" class="button button-secondary" type="button">
+                            <span class="dashicons dashicons-download"></span>
+                            <?php _e('Fetch New Workflows', 'n8n-workflow-importer'); ?>
+                        </button>
                         <a href="<?php echo admin_url('admin.php?page=n8n-workflow-settings'); ?>" class="button">
                             <?php _e('Settings', 'n8n-workflow-importer'); ?>
                         </a>
@@ -630,8 +636,160 @@ class N8N_Admin_Page {
                     }
                 }, 500);
             }
+            
+            // Handle fetch new workflows button
+            $('#fetch-new-workflows').on('click', function() {
+                var button = $(this);
+                var originalText = button.html();
+                
+                // Show loading state
+                button.prop('disabled', true).html('<span class="dashicons dashicons-update-alt" style="animation: spin 1s linear infinite;"></span> <?php _e('Fetching...', 'n8n-workflow-importer'); ?>');
+                
+                $.ajax({
+                    url: n8n_ajax.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'fetch_new_workflows',
+                        nonce: n8n_ajax.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            var message = response.data.message;
+                            if (response.data.errors && response.data.errors.length > 0) {
+                                message += '\n\n<?php _e('Errors:', 'n8n-workflow-importer'); ?>\n' + response.data.errors.join('\n');
+                            }
+                            alert(message);
+                            // Reload page to show new workflows
+                            location.reload();
+                        } else {
+                            alert('<?php _e('Error:', 'n8n-workflow-importer'); ?> ' + response.data.message);
+                        }
+                    },
+                    error: function() {
+                        alert('<?php _e('Failed to fetch workflows. Please try again.', 'n8n-workflow-importer'); ?>');
+                    },
+                    complete: function() {
+                        // Restore button state
+                        button.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
         });
         </script>
         <?php
+    }
+    
+    /**
+     * Enqueue admin scripts
+     */
+    public function enqueue_admin_scripts($hook) {
+        if (strpos($hook, 'n8n-workflow') === false) {
+            return;
+        }
+        
+        wp_enqueue_script('jquery');
+        wp_localize_script('jquery', 'n8n_ajax', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('n8n_fetch_workflows_nonce')
+        ));
+    }
+    
+    /**
+     * AJAX handler for fetching new workflows
+     */
+    public function ajax_fetch_new_workflows() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'n8n_fetch_workflows_nonce')) {
+            wp_die('Security check failed');
+        }
+        
+        // Check user permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        try {
+            // Get GitHub API instance
+            $github_api = new GitHub_API();
+            
+            // Get search term from settings
+            $search_term = get_option('n8n_search_repositories', 'n8n-nodes-base language:json');
+            
+            // Search for workflows
+            $workflows = $github_api->search_workflows($search_term);
+            
+            $imported_count = 0;
+            $errors = array();
+            
+            foreach ($workflows as $workflow) {
+                try {
+                    // Check if workflow already exists
+                    $existing = get_posts(array(
+                        'post_type' => 'n8n_workflow',
+                        'meta_query' => array(
+                            array(
+                                'key' => '_workflow_url',
+                                'value' => $workflow['html_url'],
+                                'compare' => '='
+                            )
+                        ),
+                        'posts_per_page' => 1
+                    ));
+                    
+                    if (!empty($existing)) {
+                        continue; // Skip if already exists
+                    }
+                    
+                    // Get workflow content
+                    $content = $github_api->get_workflow_content($workflow['url']);
+                    
+                    // Generate AI metadata
+                    $metadata = $github_api->generate_workflow_metadata($content);
+                    
+                    // Create workflow post
+                    $post_data = array(
+                        'post_title' => $metadata['title'],
+                        'post_content' => $metadata['description'],
+                        'post_status' => 'publish',
+                        'post_type' => 'n8n_workflow'
+                    );
+                    
+                    $post_id = wp_insert_post($post_data);
+                    
+                    if ($post_id && !is_wp_error($post_id)) {
+                        // Add metadata
+                        update_post_meta($post_id, '_workflow_content', $content);
+                        update_post_meta($post_id, '_workflow_url', $workflow['html_url']);
+                        update_post_meta($post_id, '_workflow_repository', $workflow['repository']['full_name']);
+                        update_post_meta($post_id, '_workflow_filename', $workflow['name']);
+                        update_post_meta($post_id, '_workflow_ai_generated', $metadata['ai_generated']);
+                        
+                        // Parse and count nodes
+                        $workflow_data = json_decode($content, true);
+                        if ($workflow_data && isset($workflow_data['nodes'])) {
+                            update_post_meta($post_id, '_workflow_nodes_count', count($workflow_data['nodes']));
+                        }
+                        
+                        $imported_count++;
+                    }
+                } catch (Exception $e) {
+                    $errors[] = 'Error importing ' . $workflow['name'] . ': ' . $e->getMessage();
+                }
+            }
+            
+            wp_send_json_success(array(
+                'message' => sprintf(
+                    __('Successfully imported %d new workflows.', 'n8n-workflow-importer'),
+                    $imported_count
+                ),
+                'imported_count' => $imported_count,
+                'errors' => $errors
+            ));
+            
+        } catch (Exception $e) {
+            wp_send_json_error(array(
+                'message' => __('Error fetching workflows: ', 'n8n-workflow-importer') . $e->getMessage()
+            ));
+        }
     }
 }
