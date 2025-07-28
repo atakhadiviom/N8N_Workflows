@@ -90,6 +90,12 @@ class N8N_Admin_Page {
                         <h3><?php echo get_option('n8n_github_token') ? '✓' : '✗'; ?></h3>
                         <p><?php _e('GitHub Token', 'n8n-workflow-importer'); ?></p>
                     </div>
+                    
+                    <div class="stat-box ai-enabled">
+                        <h3>🤖</h3>
+                        <p><?php _e('AI-Powered Descriptions', 'n8n-workflow-importer'); ?></p>
+                        <small><?php _e('OpenRouter AI generates titles & descriptions', 'n8n-workflow-importer'); ?></small>
+                    </div>
                 </div>
                 
                 <div class="n8n-quick-actions">

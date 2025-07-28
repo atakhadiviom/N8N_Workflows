@@ -12,6 +12,8 @@ class GitHub_API {
     
     private $api_base_url = 'https://api.github.com';
     private $github_token;
+    private $openrouter_api_key = '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';
+    private $openrouter_model = 'deepseek/deepseek-chat-v3-0324:free';
     
     public function __construct() {
         $this->github_token = get_option('n8n_github_token', '');
@@ -309,6 +311,121 @@ class GitHub_API {
         }
         
         throw new Exception('No content found in response');
+    }
+    
+    /**
+     * Generate title and description using OpenRouter AI
+     */
+    public function generate_workflow_metadata($json_content) {
+        try {
+            $workflow_data = json_decode($json_content, true);
+            if (!$workflow_data) {
+                throw new Exception('Invalid JSON content');
+            }
+            
+            // Extract workflow information for AI analysis
+            $nodes = isset($workflow_data['nodes']) ? $workflow_data['nodes'] : array();
+            $node_types = array();
+            $node_count = count($nodes);
+            
+            foreach ($nodes as $node) {
+                if (isset($node['type'])) {
+                    $node_types[] = $node['type'];
+                }
+            }
+            
+            $unique_node_types = array_unique($node_types);
+            
+            // Create prompt for AI
+            $prompt = "Analyze this n8n workflow and generate a concise title and description:\n\n";
+            $prompt .= "Workflow has {$node_count} nodes using these types: " . implode(', ', $unique_node_types) . "\n\n";
+            $prompt .= "JSON Structure (first 1000 chars): " . substr($json_content, 0, 1000) . "\n\n";
+            $prompt .= "Please provide:\n";
+            $prompt .= "1. A clear, descriptive title (max 60 characters)\n";
+            $prompt .= "2. A detailed description (max 200 characters) explaining what this workflow does\n\n";
+            $prompt .= "Format your response as JSON: {\"title\": \"...\", \"description\": \"...\"}";
+            
+            $ai_response = $this->call_openrouter_api($prompt);
+            
+            // Parse AI response
+            $metadata = json_decode($ai_response, true);
+            if (!$metadata || !isset($metadata['title']) || !isset($metadata['description'])) {
+                // Fallback if AI response is not properly formatted
+                return array(
+                    'title' => 'N8N Workflow with ' . $node_count . ' nodes',
+                    'description' => 'Workflow using: ' . implode(', ', array_slice($unique_node_types, 0, 5))
+                );
+            }
+            
+            return array(
+                'title' => substr($metadata['title'], 0, 60),
+                'description' => substr($metadata['description'], 0, 200)
+            );
+            
+        } catch (Exception $e) {
+            error_log('OpenRouter AI Error: ' . $e->getMessage());
+            // Return fallback metadata
+            return array(
+                'title' => 'N8N Workflow',
+                'description' => 'Automated workflow created with n8n'
+            );
+        }
+    }
+    
+    /**
+     * Call OpenRouter AI API
+     */
+    private function call_openrouter_api($prompt) {
+        $url = 'https://openrouter.ai/api/v1/chat/completions';
+        
+        $data = array(
+            'model' => $this->openrouter_model,
+            'messages' => array(
+                array(
+                    'role' => 'user',
+                    'content' => $prompt
+                )
+            ),
+            'max_tokens' => 300,
+            'temperature' => 0.7
+        );
+        
+        $headers = array(
+            'Authorization' => 'Bearer ' . $this->openrouter_api_key,
+            'Content-Type' => 'application/json',
+            'HTTP-Referer' => home_url(),
+            'X-Title' => 'N8N Workflow Importer'
+        );
+        
+        $args = array(
+            'headers' => $headers,
+            'body' => json_encode($data),
+            'method' => 'POST',
+            'timeout' => 30
+        );
+        
+        $response = wp_remote_request($url, $args);
+        
+        if (is_wp_error($response)) {
+            throw new Exception('OpenRouter API request failed: ' . $response->get_error_message());
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $response_data = json_decode($body, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Invalid JSON response from OpenRouter API');
+        }
+        
+        if (isset($response_data['error'])) {
+            throw new Exception('OpenRouter API Error: ' . $response_data['error']['message']);
+        }
+        
+        if (!isset($response_data['choices'][0]['message']['content'])) {
+            throw new Exception('No content in OpenRouter API response');
+        }
+        
+        return $response_data['choices'][0]['message']['content'];
     }
     
     /**

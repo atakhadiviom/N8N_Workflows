@@ -161,8 +161,14 @@ class N8N_Workflow_Importer {
     }
     
     private function create_workflow_post($workflow_data) {
-        $title = $this->generate_title($workflow_data);
-        $description = $this->generate_description($workflow_data);
+        // Generate AI-powered title and description
+        $ai_metadata = $this->github_api->generate_workflow_metadata($workflow_data['content']);
+        
+        $title = $ai_metadata['title'];
+        $ai_description = $ai_metadata['description'];
+        
+        // Create full description with AI description and workflow details
+        $description = $this->generate_full_description($workflow_data, $ai_description);
         
         $post_data = array(
             'post_title' => $title,
@@ -214,11 +220,18 @@ class N8N_Workflow_Importer {
         return $title;
     }
     
-    private function generate_description($workflow_data) {
+    private function generate_full_description($workflow_data, $ai_description) {
         $json_data = json_decode($workflow_data['content'], true);
         
         $description = '<div class="n8n-workflow-description">';
-        $description .= '<h3>Workflow Overview</h3>';
+        
+        // Add AI-generated description at the top
+        $description .= '<div class="ai-description">';
+        $description .= '<h3>Description</h3>';
+        $description .= '<p>' . esc_html($ai_description) . '</p>';
+        $description .= '</div>';
+        
+        $description .= '<h3>Workflow Details</h3>';
         
         if ($json_data) {
             $description .= '<p><strong>Repository:</strong> ' . esc_html($workflow_data['repository']['full_name']) . '</p>';

@@ -4,6 +4,7 @@ A comprehensive WordPress plugin that automatically searches for n8n workflows o
 
 ## Features
 
+- 🤖 **AI-Powered Descriptions**: Uses OpenRouter AI (DeepSeek model) to automatically generate meaningful titles and descriptions for workflows
 - 🔍 **Automatic GitHub Search**: Searches for n8n workflow JSON files across GitHub repositories
 - 📥 **Smart Import System**: Automatically imports workflows with metadata extraction
 - 🎨 **Beautiful Display**: Modern, responsive interface for viewing workflows
@@ -41,7 +42,15 @@ To increase API rate limits and access more repositories:
 3. Select the "public_repo" scope for public repositories
 4. Copy the token and paste it in the plugin settings
 
-### 2. Plugin Settings
+### 2. AI Integration
+
+The plugin automatically uses OpenRouter AI to generate titles and descriptions:
+- **API Key**: Pre-configured with OpenRouter API key
+- **Model**: Uses DeepSeek Chat v3 (free tier)
+- **Functionality**: Analyzes workflow JSON structure and node types to create meaningful descriptions
+- **Fallback**: If AI fails, generates basic descriptions from workflow metadata
+
+### 3. Plugin Settings
 
 Navigate to **WordPress Admin → N8N Workflows → Settings** and configure:
 
