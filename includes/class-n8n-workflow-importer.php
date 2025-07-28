@@ -66,13 +66,17 @@ class N8N_Workflow_Importer {
     }
     
     public function enqueue_admin_scripts($hook) {
+        // Delegate to admin page enqueue method
+        $this->admin_page->enqueue_admin_scripts($hook);
+        
+        // Additional admin scripts if needed
         if ($hook !== 'toplevel_page_n8n-workflow-importer') {
             return;
         }
         
         wp_enqueue_script(
             'n8n-workflow-importer-admin',
-            N8N_WORKFLOW_IMPORTER_PLUGIN_URL . 'assets/js/admin.js',
+            N8N_WORKFLOW_IMPORTER_PLUGIN_URL . 'assets/js/n8n-workflow-importer.js',
             array('jquery'),
             N8N_WORKFLOW_IMPORTER_VERSION,
             true

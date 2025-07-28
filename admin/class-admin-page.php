@@ -683,10 +683,20 @@ class N8N_Admin_Page {
      * Enqueue admin scripts
      */
     public function enqueue_admin_scripts($hook) {
+        // Only load on our plugin pages
         if (strpos($hook, 'n8n-workflow') === false) {
             return;
         }
         
+        // Enqueue CSS
+        wp_enqueue_style(
+            'n8n-workflow-importer-admin',
+            plugin_dir_url(dirname(__FILE__)) . 'assets/css/n8n-workflow-importer.css',
+            array(),
+            '1.0.0'
+        );
+        
+        // Enqueue jQuery and localize script
         wp_enqueue_script('jquery');
         wp_localize_script('jquery', 'n8n_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
