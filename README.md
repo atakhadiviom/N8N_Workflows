@@ -44,17 +44,18 @@ To increase API rate limits and access more repositories:
 
 ### 2. AI Integration
 
-The plugin automatically uses OpenRouter AI to generate titles and descriptions:
-- **API Key**: Pre-configured with OpenRouter API key
-- **Model**: Uses DeepSeek Chat v3 (free tier)
+The plugin supports OpenRouter AI to generate titles and descriptions:
+- **API Key**: Configure in plugin settings (or define `N8N_OPENROUTER_API_KEY` in `wp-config.php`)
+- **Model**: Uses DeepSeek Chat v3 (`deepseek/deepseek-chat-v3-0324:free`)
 - **Functionality**: Analyzes workflow JSON structure and node types to create meaningful descriptions
-- **Fallback**: If AI fails, generates basic descriptions from workflow metadata
+- **Fallback**: If AI is not configured or fails, automatically generates clean descriptions from workflow node types and metadata
 
 ### 3. Plugin Settings
 
 Navigate to **WordPress Admin → N8N Workflows → Settings** and configure:
 
 - **GitHub Personal Access Token**: Your GitHub token for API access
+- **OpenRouter API Key**: Optional API key for AI-generated descriptions
 - **Auto Import**: Enable automatic workflow discovery and import
 - **Import Frequency**: How often to check for new workflows (hourly/daily/weekly)
 - **Default Category**: Default category for imported workflows
