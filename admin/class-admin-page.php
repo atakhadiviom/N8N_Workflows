@@ -54,6 +54,7 @@ class N8N_Admin_Page {
      */
     public function register_settings() {
         register_setting('n8n_workflow_settings', 'n8n_github_token');
+        register_setting('n8n_workflow_settings', 'n8n_openrouter_api_key');
         register_setting('n8n_workflow_settings', 'n8n_auto_import_enabled');
         register_setting('n8n_workflow_settings', 'n8n_import_frequency');
         register_setting('n8n_workflow_settings', 'n8n_default_category');
@@ -94,9 +95,9 @@ class N8N_Admin_Page {
                     </div>
                     
                     <div class="stat-box ai-enabled">
-                        <h3>🤖</h3>
-                        <p><?php _e('AI-Powered Descriptions', 'n8n-workflow-importer'); ?></p>
-                        <small><?php _e('OpenRouter AI generates titles & descriptions', 'n8n-workflow-importer'); ?></small>
+                        <h3><?php echo (defined('N8N_OPENROUTER_API_KEY') || get_option('n8n_openrouter_api_key')) ? '✓' : '—'; ?></h3>
+                        <p><?php _e('OpenRouter AI', 'n8n-workflow-importer'); ?></p>
+                        <small><?php echo (defined('N8N_OPENROUTER_API_KEY') || get_option('n8n_openrouter_api_key')) ? __('AI titles & descriptions active', 'n8n-workflow-importer') : __('Optional key not configured', 'n8n-workflow-importer'); ?></small>
                     </div>
                 </div>
                 
@@ -226,6 +227,9 @@ class N8N_Admin_Page {
             check_admin_referer('n8n_settings_nonce');
             
             update_option('n8n_github_token', sanitize_text_field($_POST['n8n_github_token']));
+            if (isset($_POST['n8n_openrouter_api_key'])) {
+                update_option('n8n_openrouter_api_key', sanitize_text_field($_POST['n8n_openrouter_api_key']));
+            }
             update_option('n8n_auto_import_enabled', isset($_POST['n8n_auto_import_enabled']));
             update_option('n8n_import_frequency', sanitize_text_field($_POST['n8n_import_frequency']));
             update_option('n8n_default_category', intval($_POST['n8n_default_category']));
@@ -235,6 +239,7 @@ class N8N_Admin_Page {
         }
         
         $github_token = get_option('n8n_github_token', '');
+        $openrouter_api_key = get_option('n8n_openrouter_api_key', '');
         $auto_import = get_option('n8n_auto_import_enabled', false);
         $import_frequency = get_option('n8n_import_frequency', 'daily');
         $default_category = get_option('n8n_default_category', 0);
@@ -262,6 +267,19 @@ class N8N_Admin_Page {
                             <p class="description">
                                 <?php _e('Enter your GitHub Personal Access Token to increase API rate limits and access private repositories.', 'n8n-workflow-importer'); ?>
                                 <a href="https://github.com/settings/tokens" target="_blank"><?php _e('Create token', 'n8n-workflow-importer'); ?></a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="n8n_openrouter_api_key"><?php _e('OpenRouter API Key', 'n8n-workflow-importer'); ?></label>
+                        </th>
+                        <td>
+                            <input type="password" id="n8n_openrouter_api_key" name="n8n_openrouter_api_key" value="<?php echo esc_attr($openrouter_api_key); ?>" class="regular-text" />
+                            <p class="description">
+                                <?php _e('Optional. Enter your OpenRouter API key to automatically generate AI descriptions for imported workflows. Can also be defined via N8N_OPENROUTER_API_KEY in wp-config.php.', 'n8n-workflow-importer'); ?>
+                                <a href="https://openrouter.ai/keys" target="_blank"><?php _e('Get API Key', 'n8n-workflow-importer'); ?></a>
                             </p>
                         </td>
                     </tr>

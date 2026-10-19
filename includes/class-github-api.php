@@ -12,11 +12,13 @@ class GitHub_API {
     
     private $api_base_url = 'https://api.github.com';
     private $github_token;
-    private $openrouter_api_key = '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';
-    private $openrouter_model = 'deepseek/deepseek-chat-v3-0324:free';
+    private $openrouter_api_key;
+    private $openrouter_model;
     
     public function __construct() {
         $this->github_token = get_option('n8n_github_token', '');
+        $this->openrouter_api_key = defined('N8N_OPENROUTER_API_KEY') ? N8N_OPENROUTER_API_KEY : get_option('n8n_openrouter_api_key', '');
+        $this->openrouter_model = get_option('n8n_openrouter_model', 'deepseek/deepseek-chat-v3-0324:free');
     }
     
     /**
@@ -367,10 +369,10 @@ class GitHub_API {
             
         } catch (Exception $e) {
             error_log('OpenRouter AI Error: ' . $e->getMessage());
-            // Return fallback metadata
+            // Return fallback metadata using extracted workflow data
             return array(
-                'title' => 'N8N Workflow',
-                'description' => 'Automated workflow created with n8n'
+                'title' => (!empty($node_count)) ? 'N8N Workflow with ' . $node_count . ' nodes' : 'N8N Workflow',
+                'description' => (!empty($unique_node_types)) ? 'Workflow using: ' . implode(', ', array_slice($unique_node_types, 0, 5)) : 'Automated workflow created with n8n'
             );
         }
     }
@@ -379,6 +381,10 @@ class GitHub_API {
      * Call OpenRouter AI API
      */
     private function call_openrouter_api($prompt) {
+        if (empty($this->openrouter_api_key)) {
+            throw new Exception('OpenRouter API key is not configured.');
+        }
+
         $url = 'https://openrouter.ai/api/v1/chat/completions';
         
         $data = array(
